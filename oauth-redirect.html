@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vibes - Connecting to Spotify</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+        .container {
+            text-align: center;
+            padding: 40px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 20px;
+            backdrop-filter: blur(10px);
+            max-width: 500px;
+        }
+        h1 {
+            margin-bottom: 20px;
+            font-size: 32px;
+        }
+        p {
+            font-size: 18px;
+            opacity: 0.9;
+        }
+        .loader {
+            margin: 30px auto;
+            border: 4px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            border-top: 4px solid white;
+            width: 50px;
+            height: 50px;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        .error {
+            background: rgba(255, 59, 48, 0.2);
+            padding: 20px;
+            border-radius: 10px;
+            margin-top: 20px;
+        }
+        code {
+            background: rgba(0, 0, 0, 0.3);
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎵 Vibes</h1>
+        <p id="status">Connecting to Spotify...</p>
+        <div class="loader" id="loader"></div>
+        <div id="error" class="error" style="display: none;">
+            <p><strong>Unable to open app</strong></p>
+            <p>Please make sure the Vibes app is installed.</p>
+            <p id="errorDetails"></p>
+        </div>
+    </div>
+
+    <script>
+        // Extract OAuth parameters from URL
+        function getUrlParams() {
+            const params = new URLSearchParams(window.location.search);
+            return {
+                code: params.get('code'),
+                error: params.get('error'),
+                state: params.get('state')
+            };
+        }
+
+        // Attempt to open the app with the OAuth result
+        function redirectToApp() {
+            const params = getUrlParams();
+            const loader = document.getElementById('loader');
+            const status = document.getElementById('status');
+            const errorDiv = document.getElementById('error');
+            const errorDetails = document.getElementById('errorDetails');
+
+            if (params.error) {
+                loader.style.display = 'none';
+                status.textContent = 'Authorization Failed';
+                errorDiv.style.display = 'block';
+                errorDetails.textContent = `Error: ${params.error}`;
+                return;
+            }
+
+            if (params.code) {
+                // Build the deep link to open the app
+                const deepLink = `com.vibesapp://oauth/spotify/callback?code=${encodeURIComponent(params.code)}${params.state ? '&state=' + encodeURIComponent(params.state) : ''}`;
+
+                status.textContent = 'Opening Vibes app...';
+
+                // Try to open the app
+                window.location.href = deepLink;
+
+                // Fallback message after 2 seconds
+                setTimeout(() => {
+                    loader.style.display = 'none';
+                    errorDiv.style.display = 'block';
+                    status.textContent = 'Success!';
+                    errorDetails.innerHTML = `
+                        <p>If the app didn't open automatically, copy this code:</p>
+                        <code style="display: block; margin-top: 10px; word-break: break-all;">${params.code}</code>
+                    `;
+                }, 2000);
+            } else {
+                loader.style.display = 'none';
+                status.textContent = 'Invalid Response';
+                errorDiv.style.display = 'block';
+                errorDetails.textContent = 'No authorization code received from Spotify.';
+            }
+        }
+
+        // Run when page loads
+        redirectToApp();
+    </script>
+</body>
+</html>
